@@ -1,0 +1,11 @@
+[project]
+name = "haxball-genetic-agent"
+version = "0.1.0"
+description = "Haxball game with genetic algorithm agents"
+requires-python = ">=3.10"
+dependencies = [
+    "pygame>=2.5.0",
+]
+
+[tool.uv]
+python-version = "3.10"
