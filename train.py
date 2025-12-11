@@ -27,7 +27,7 @@ for y in range(config.ROWS):
         begin = (coord_x_inicial,  coord_y_inicial)
         final = (coord_x_final,  coord_y_final)
         
-        quadras.append(Quadra(screen, begin, final , []))
+        quadras.append(Quadra(screen, begin, final , ['player', 'bot']))
 
 clock = pygame.time.Clock()
 running = True
