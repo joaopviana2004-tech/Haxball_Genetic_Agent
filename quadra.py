@@ -85,7 +85,7 @@ class Quadra:
     def draw(self):
         pygame.draw.rect(self.screen, self.color, [self.x_pos, self.y_pos, self.largura, self.altura])
         pygame.draw.line(self.screen, config.LINE_COLOR, (self.x_pos + self.largura/2, self.y_pos), (self.x_pos + self.largura/2, self.end[1]), self.grossura)
-        pygame.draw.circle(self.screen, config.LINE_COLOR, ( self.x_pos + self.largura/2, self.y_pos + self.altura/2), (self.altura)/10, self.grossura)
+        pygame.draw.circle(self.screen, config.LINE_COLOR, ( int(self.x_pos + self.largura/2), int(self.y_pos + self.altura/2)), int(self.altura/10), self.grossura)
 
     def update(self):
         self.draw()
@@ -138,8 +138,9 @@ class Quadra:
         for g in self.goals:
             g.draw()
 
-        # Desenha placar com fonte maior e nos lados
-        font = pygame.font.SysFont(None, 260)
+        # Desenha placar com tamanho proporcional à altura da quadra
+        font_size = max(12, int(self.altura * 0.3))
+        font = pygame.font.SysFont(None, font_size)
         
         # Time 0 (esquerda)
         score_0 = font.render(str(self.score[0]), True, config.LINE_COLOR)

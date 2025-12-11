@@ -12,8 +12,10 @@ class Ball(Entity):
         x_pos = begin[0] + largura/2
         y_pos = begin[1] + altura/2
         
-        radius = (altura * config.RADIUS_SCALE) / 2
-        
+        # Bola escala com a menor dimensão da quadra
+        size = min(largura, altura)
+        radius = max(3, int(size * config.RADIUS_SCALE * 0.5))
+
         super().__init__(x_pos, y_pos, begin, end, screen, radius, config.BALL_COLOR, speed=0)
 
         self.players = players
@@ -22,12 +24,7 @@ class Ball(Entity):
         self.vx = 0
         self.vy = 0
         
-        self.rect = pygame.Rect(
-            self.x - self.radius,
-            self.y - self.radius,
-            self.radius * 2,
-            self.radius * 2
-        )
+        self.rect = pygame.Rect(int(self.x - self.radius), int(self.y - self.radius), int(self.radius * 2), int(self.radius * 2))
 
         # Lista de goals (será atribuída pela Quadra se existir)
         self.goals = []

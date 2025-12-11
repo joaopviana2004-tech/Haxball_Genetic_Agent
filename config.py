@@ -44,8 +44,8 @@ WINDOW_HEIGHT = 1000
 FPS = 60
 
 # Quantidade de Quadras
-ROWS = 2
-COLUMNS = 1
+ROWS = 5
+COLUMNS = 5
 
 # QUADRA
 GRASS_COLOR = (80, 180, 80)

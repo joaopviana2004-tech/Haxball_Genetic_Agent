@@ -21,7 +21,9 @@ class Goal:
         self.y_bottom = self.y_top + self.height
 
         # profundeza da trave em pixels (quanto a abertura 'entra' na quadra)
-        self.depth = depth_pixels if depth_pixels is not None else max(10, int(largura * 0.02))
+        # proporcional à largura da quadra local para escalar com ROWS/COLUMNS
+        default_depth = max(6, int(largura * 0.04))
+        self.depth = depth_pixels if depth_pixels is not None else default_depth
 
         if side == 'left':
             # rect posicionada dentro da quadra, à esquerda, expandida para detectabilidade
@@ -38,10 +40,11 @@ class Goal:
         goal_fill = (255, 255, 255)
         border_color = (200, 50, 50)
         pygame.draw.rect(self.screen, goal_fill, self.rect)
-        pygame.draw.rect(self.screen, border_color, self.rect, 2)
+        border_w = max(1, int(self.depth * 0.3))
+        pygame.draw.rect(self.screen, border_color, self.rect, border_w)
 
         # Desenha 'postes' superior e inferior (marcadores internos)
-        post_thickness = 3
+        post_thickness = max(1, int(self.height * 0.06))
         left_x = self.rect.left
         right_x = self.rect.right
         top_y = self.rect.top

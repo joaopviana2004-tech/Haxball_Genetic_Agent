@@ -8,7 +8,9 @@ class Player(Entity):
         largura = end[0] - begin[0]
         altura = end[1] - begin[1]
 
-        radius = config.RADIUS_SCALE * altura 
+        # Usa a menor dimensão (largura/altura) para escalar variáveis de tamanho
+        size = min(largura, altura)
+        radius = max(4, int(size * config.RADIUS_SCALE))
         # Define posição inicial baseada no time
         x = (begin[0] + radius*4) if team == 0 else (end[0] - radius*4) 
         y = begin[1] + altura/2
@@ -22,7 +24,7 @@ class Player(Entity):
         self.friction = 0.85    # "Grip" no chão (quanto menor, mais sabão)
         
         # Atualiza o rect para colisões
-        self.rect = pygame.Rect(self.x, self.y, self.radius*2, self.radius*2)
+        self.rect = pygame.Rect(int(self.x - self.radius), int(self.y - self.radius), int(self.radius*2), int(self.radius*2))
 
     def get_input(self):
         keys = pygame.key.get_pressed()
