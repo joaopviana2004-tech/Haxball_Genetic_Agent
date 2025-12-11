@@ -73,6 +73,14 @@ class Quadra:
                     p1.y += ny * (overlap / 2)
                     p2.x -= nx * (overlap / 2)
                     p2.y -= ny * (overlap / 2)
+                    
+                    # Dissipa velocidade ao colidir (reduz bounce)
+                    if hasattr(p1, 'vx'):
+                        p1.vx *= 0.7
+                        p1.vy *= 0.7
+                    if hasattr(p2, 'vx'):
+                        p2.vx *= 0.7
+                        p2.vy *= 0.7
 
     def draw(self):
         pygame.draw.rect(self.screen, self.color, [self.x_pos, self.y_pos, self.largura, self.altura])
@@ -113,6 +121,12 @@ class Quadra:
             else:
                 start_x = self.end[0] - p.radius * 4
             p.set_position(start_x, center_y)
+            
+            # Reseta velocidades dos jogadores
+            if hasattr(p, 'vx'):
+                p.vx = 0
+            if hasattr(p, 'vy'):
+                p.vy = 0
 
     def draw(self):
         # Desenha gramado e linhas base

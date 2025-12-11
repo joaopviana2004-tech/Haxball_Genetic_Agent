@@ -80,17 +80,17 @@ class Player(Entity):
         # Colisão com Paredes (Copia a lógica do Entity mas adaptada para velocidade)
         if self.x + self.radius > self.end[0]:
             self.x = self.end[0] - self.radius
-            self.vx = 0 # Para ao bater na parede
+            self.vx *= -0.5  # Rebote com amortecimento
         elif self.x - self.radius < self.begin[0]:
             self.x = self.begin[0] + self.radius
-            self.vx = 0
+            self.vx *= -0.5  # Rebote com amortecimento
 
         if self.y + self.radius > self.end[1]:
             self.y = self.end[1] - self.radius
-            self.vy = 0
+            self.vy *= -0.5  # Rebote com amortecimento
         elif self.y - self.radius < self.begin[1]:
             self.y = self.begin[1] + self.radius
-            self.vy = 0
+            self.vy *= -0.5  # Rebote com amortecimento
 
         # 6. Atualiza Rect e Desenha
         self.rect.center = (int(self.x), int(self.y))

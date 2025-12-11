@@ -22,6 +22,12 @@ class Bot(Entity):
         # Se sou time 0 (esquerda), chuto para o final da tela (direita)
         self.attack_goal_x = end[0] if team == 0 else begin[0]
 
+        # --- FÍSICA DO BOT ---
+        self.vx = 0
+        self.vy = 0
+        self.acceleration = 0.6
+        self.friction = 0.85
+
         self.rect = pygame.Rect(
             self.x - self.radius,
             self.y - self.radius,
@@ -77,21 +83,54 @@ class Bot(Entity):
             elif by > self.end[1] - self.radius * 3: # Bola muito no chão
                 target_y = by - self.radius * 2
 
-        # --- MOVIMENTAÇÃO ---
+        # --- MOVIMENTAÇÃO COM FÍSICA ---
         
-        # Define dx (Movimento horizontal)
-        # Usamos uma zona morta (tolerance) de 2 pixels para evitar tremedeira
+        # Define aceleração em x e y
+        ax, ay = 0, 0
+        
         if self.x < target_x - 2:
-            dx = 1
+            ax = 1
         elif self.x > target_x + 2:
-            dx = -1
+            ax = -1
             
-        # Define dy (Movimento vertical)
         if self.y < target_y - 2:
-            dy = 1
+            ay = 1
         elif self.y > target_y + 2:
-            dy = -1
+            ay = -1
+        
+        # Aplica aceleração
+        self.vx += ax * self.acceleration
+        self.vy += ay * self.acceleration
+        
+        # Aplica fricção
+        self.vx *= self.friction
+        self.vy *= self.friction
+        
+        # Limita velocidade máxima
+        current_speed = math.hypot(self.vx, self.vy)
+        if current_speed > self.speed:
+            scale = self.speed / current_speed
+            self.vx *= scale
+            self.vy *= scale
+        
+        # Aplica movimento
+        self.x += self.vx
+        self.y += self.vy
+        
+        # Colisão com Paredes
+        if self.x + self.radius > self.end[0]:
+            self.x = self.end[0] - self.radius
+            self.vx *= -0.5
+        elif self.x - self.radius < self.begin[0]:
+            self.x = self.begin[0] + self.radius
+            self.vx *= -0.5
 
-        self.move(dx, dy)
+        if self.y + self.radius > self.end[1]:
+            self.y = self.end[1] - self.radius
+            self.vy *= -0.5
+        elif self.y - self.radius < self.begin[1]:
+            self.y = self.begin[1] + self.radius
+            self.vy *= -0.5
+        
         self.rect.center = (int(self.x), int(self.y))
         self.draw()
