@@ -11,7 +11,9 @@ dependencies = [
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+py-modules = ["ball", "bot", "config", "entity", "player", "quadra", "train", "goal"]
+
 [tool.uv]
-python-version = "3.10"
-venv = ".venv"
-packages = ["."]
+# Removed unrecognized fields to avoid pip/uv parsing errors.
+# If you need uv-specific config, put it in a separate uv config file.

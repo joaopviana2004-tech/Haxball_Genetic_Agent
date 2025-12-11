@@ -5,6 +5,7 @@ import math # Necessário para colisão
 from player import Player
 from bot import Bot
 from ball import Ball
+from goal import Goal
 
 class Quadra:
     def __init__(self, screen, begin, end, players):
@@ -24,6 +25,12 @@ class Quadra:
         
         self.players = []
         self.ball = Ball(begin, end, screen, self.players) # Passa lista vazia inicialmente
+        self.score = [0, 0]
+        # Cria traves (goals)
+        self.goals = [Goal(begin, end, 'left', screen), Goal(begin, end, 'right', screen)]
+        # Atribui goals e callback na bola
+        self.ball.goals = self.goals
+        self.ball.goal_callback = self._on_goal
         
         # Cria os players
         for i in range(len(players)):
@@ -84,3 +91,40 @@ class Quadra:
         # 3. Atualiza jogadores
         for p in self.players:
             p.update()
+
+    def _on_goal(self, goal):
+        # Incrementa pontuação do time que marcou
+        self.score[goal.score_for] += 1
+
+        # Reseta bola no centro
+        largura = self.end[0] - self.begin[0]
+        altura = self.end[1] - self.begin[1]
+        center_x = self.begin[0] + largura / 2
+        center_y = self.begin[1] + altura / 2
+        self.ball.set_position(center_x, center_y)
+        self.ball.vx = 0
+        self.ball.vy = 0
+
+        # Reposiciona jogadores na linha central dos seus lados
+        for p in self.players:
+            # decide lado pelo x atual (se estiver mais à esquerda -> time 0)
+            if p.x < center_x:
+                start_x = self.begin[0] + p.radius * 4
+            else:
+                start_x = self.end[0] - p.radius * 4
+            p.set_position(start_x, center_y)
+
+    def draw(self):
+        # Desenha gramado e linhas base
+        pygame.draw.rect(self.screen, self.color, [self.x_pos, self.y_pos, self.largura, self.altura])
+        pygame.draw.line(self.screen, config.LINE_COLOR, (self.x_pos + self.largura/2, self.y_pos), (self.x_pos + self.largura/2, self.end[1]), self.grossura)
+        pygame.draw.circle(self.screen, config.LINE_COLOR, ( self.x_pos + self.largura/2, self.y_pos + self.altura/2), (self.altura)/10, self.grossura)
+
+        # Desenha traves
+        for g in self.goals:
+            g.draw()
+
+        # Desenha placar simples
+        font = pygame.font.SysFont(None, 28)
+        score_surf = font.render(f"{self.score[0]}  -  {self.score[1]}", True, config.LINE_COLOR)
+        self.screen.blit(score_surf, (self.x_pos + self.largura/2 - score_surf.get_width()/2, self.y_pos + 10))

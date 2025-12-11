@@ -29,6 +29,11 @@ class Ball(Entity):
             self.radius * 2
         )
 
+        # Lista de goals (será atribuída pela Quadra se existir)
+        self.goals = []
+        # Função callback a ser chamada quando um gol ocorrer: callback(goal)
+        self.goal_callback = None
+
     def movimentacao(self):
         # 1. Aplica Velocidade
         self.x += self.vx
@@ -48,12 +53,35 @@ class Ball(Entity):
 
     def _check_border_collision(self):
         # Colisão com Paredes Laterais
+        # LEFT WALL: permitir passagem se for dentro de um goal
         if self.x - self.radius < self.begin[0]:
-            self.x = self.begin[0] + self.radius
-            self.vx *= -1 # Inverte velocidade (quique)
+            left_goal = None
+            for g in getattr(self, 'goals', []):
+                if getattr(g, 'side', 'left') == 'left' and g.contains_ball(self):
+                    left_goal = g
+                    break
+
+            if left_goal is not None:
+                if callable(self.goal_callback):
+                    self.goal_callback(left_goal)
+                return
+            else:
+                self.x = self.begin[0] + self.radius
+                self.vx *= -1 # Inverte velocidade (quique)
         elif self.x + self.radius > self.end[0]:
-            self.x = self.end[0] - self.radius
-            self.vx *= -1
+            right_goal = None
+            for g in getattr(self, 'goals', []):
+                if getattr(g, 'side', 'right') == 'right' and g.contains_ball(self):
+                    right_goal = g
+                    break
+
+            if right_goal is not None:
+                if callable(self.goal_callback):
+                    self.goal_callback(right_goal)
+                return
+            else:
+                self.x = self.end[0] - self.radius
+                self.vx *= -1
 
         # Colisão com Teto/Chão
         if self.y - self.radius < self.begin[1]:
