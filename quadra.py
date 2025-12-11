@@ -138,7 +138,13 @@ class Quadra:
         for g in self.goals:
             g.draw()
 
-        # Desenha placar simples
-        font = pygame.font.SysFont(None, 28)
-        score_surf = font.render(f"{self.score[0]}  -  {self.score[1]}", True, config.LINE_COLOR)
-        self.screen.blit(score_surf, (self.x_pos + self.largura/2 - score_surf.get_width()/2, self.y_pos + 10))
+        # Desenha placar com fonte maior e nos lados
+        font = pygame.font.SysFont(None, 260)
+        
+        # Time 0 (esquerda)
+        score_0 = font.render(str(self.score[0]), True, config.LINE_COLOR)
+        self.screen.blit(score_0, (self.x_pos + self.largura/4 - score_0.get_width()/2, self.y_pos + self.altura/2 - score_0.get_height()/2))
+        
+        # Time 1 (direita)
+        score_1 = font.render(str(self.score[1]), True, config.LINE_COLOR)
+        self.screen.blit(score_1, (self.x_pos + 3*self.largura/4 - score_1.get_width()/2, self.y_pos + self.altura/2 - score_1.get_height()/2))
