@@ -5,7 +5,6 @@ import math
 from datetime import datetime
 import numpy as np
 
-# Importa as classes do seu projeto
 from quadra import Quadra
 from redeneural import RedeNeural
 import config

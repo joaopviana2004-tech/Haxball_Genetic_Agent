@@ -26,13 +26,15 @@ class Goal:
         self.depth = depth_pixels if depth_pixels is not None else default_depth
 
         if side == 'left':
-            # rect posicionada dentro da quadra, à esquerda, expandida para detectabilidade
-            self.rect = pygame.Rect(begin[0] - self.depth, self.y_top, self.depth * 2, self.height)
+            # rect posicionada FORA da quadra, à esquerda
+            # Se estende bem antes do início para capturar a bola saindo
+            self.rect = pygame.Rect(begin[0] - self.depth * 3, self.y_top - 5, self.depth * 4, self.height + 10)
             # quando a bola entra na trave esquerda, o time da direita (1) pontua
             self.score_for = 1
         else:
-            # rect posicionada dentro da quadra, à direita, expandida para detectabilidade
-            self.rect = pygame.Rect(end[0] - self.depth, self.y_top, self.depth * 2, self.height)
+            # rect posicionada FORA da quadra, à direita
+            # Se estende bem depois do fim para capturar a bola saindo
+            self.rect = pygame.Rect(end[0] - self.depth, self.y_top - 5, self.depth * 4, self.height + 10)
             self.score_for = 0
 
     def draw(self):
