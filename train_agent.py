@@ -61,7 +61,7 @@ def main():
                 cy = y * cell_height
                 # Cria quadra com 2 agentes (1v1)
                 # 'agent' vs 'agent' para treinarem entre si
-                q = Quadra(screen, (cx, cy), (cx + cell_width, cy + cell_height), ['agent', 'agent'])
+                q = Quadra(screen, (cx, cy), (cx + cell_width, cy + cell_height), ['agent', 'bot'])
                 quadras.append(q)
                 
                 # Injeta os cérebros da população nos agentes criados
