@@ -16,7 +16,8 @@ class Player(Entity):
         # Define posição inicial baseada no time
         x = (begin[0] + radius*4) if team == 0 else (end[0] - radius*4) 
         y = begin[1] + altura/2
-
+        
+        self.type = "PLAYER"
         self.team = team
 
         super().__init__(x, y, begin, end, screen, radius, color=color, speed=config.PLAYER_SPEED)

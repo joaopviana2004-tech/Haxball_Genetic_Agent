@@ -39,9 +39,20 @@ def Variate_grass_color():
     return (final_R, final_G, final_B)
 
 # JANELA
-WINDOW_WIDTH = 1000
-WINDOW_HEIGHT = 1000
-FPS = 60
+GAME_WIDTH = 1000   # Antigo WINDOW_WIDTH
+GAME_HEIGHT = 1000  # Antigo WINDOW_HEIGHT
+SIDEBAR_WIDTH = 600 # Largura da barra lateral
+WINDOW_WIDTH = GAME_WIDTH + SIDEBAR_WIDTH # Largura Total
+WINDOW_HEIGHT = GAME_HEIGHT
+
+# Cores da UI
+BG_COLOR = (30, 30, 30)       # Fundo da sidebar
+GRAPH_LINE_COLOR = (0, 255, 255) # Ciano
+TEXT_COLOR = (220, 220, 220)
+NODE_OFF_COLOR = (50, 50, 50)
+NODE_ON_COLOR = (0, 255, 0)
+WEIGHT_POS_COLOR = (0, 200, 0) # Peso positivo (verde)
+WEIGHT_NEG_COLOR = (200, 0, 0) # Peso negativo (vermelho)
 
 # Quantidade de Quadras
 limiar = 5
@@ -53,7 +64,8 @@ GRASS_COLOR = (80, 180, 80)
 LINE_COLOR = (220, 220, 220)
 LEFT_WIN_COLOR = (0,255,0)
 RIGHT_WIN_COLOR = (255,0,0)
-WIN_SCORE = 3
+BEST_COLOR = (255, 215, 0)
+WIN_SCORE = 10
 
 # ENTITY
 RADIUS_SCALE = 0.1
@@ -68,7 +80,8 @@ BOT_COLOR = (205, 76, 150)
 
 # AGENT
 AGENT_COLOR = (76, 150, 205)
-HIDDEN_SIZE_LAYER = 12
+DUAL_AGENT_COLOR = (50, 120, 176)
+HIDDEN_SIZE_LAYER = [3,3]
 
 # GERAL DAS ENTIDADES
 DEFAULT_RADIUS = 20

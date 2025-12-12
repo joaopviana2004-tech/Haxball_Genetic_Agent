@@ -14,6 +14,7 @@ class Quadra:
         self.screen = screen
         self.begin = begin
         self.end = end
+        self.pontuou = False
         self.color = config.Variate_grass_color()
 
         # Status 0: Partida Rolando
@@ -54,7 +55,10 @@ class Quadra:
             elif(players[i] == 'player'):
                 individuo = Player(ID[i], begin, end, i % 2, screen) 
             else:
-                individuo = Agent(ID[i], begin, end, i % 2, screen, target=self.ball, players = self.players)
+                if(players[0]=='agent' and i == 1):
+                    individuo = Agent(ID[i], begin, end, i % 2, screen, target=self.ball, players = self.players, color=config.DUAL_AGENT_COLOR)
+                else:
+                    individuo = Agent(ID[i], begin, end, i % 2, screen, target=self.ball, players = self.players)
             self.players.append(individuo)
             
         # Atualiza a referência de players na bola (agora que a lista está cheia)
@@ -104,14 +108,35 @@ class Quadra:
         pygame.draw.circle(self.screen, config.LINE_COLOR, ( int(self.x_pos + self.largura/2), int(self.y_pos + self.altura/2)), int(self.altura/10), self.grossura)
 
     def update(self):
-        if(self.status == 1):
-            pygame.draw.rect(self.screen,self.LEFT_WIN_COLOR , [self.x_pos, self.y_pos, self.largura, self.altura])
+        
+        if self.status == 1 or self.status == 2:
+            # Desenha o campo (grama e linhas)
+            self.draw() 
+            
+            # Desenha os jogadores e a bola onde eles pararam (sem atualizar física)
+            for p in self.players:
+                p.draw()
+            self.ball.draw()
+
+            # --- CRIAÇÃO DA MÁSCARA TRANSPARENTE ---
+            
+            # Cria uma "folha" nova do tamanho da quadra
+            overlay = pygame.Surface((self.largura, self.altura))
+            
+            # Define a transparência: 0 (invisível) até 255 (sólido). 
+            # 128 é 50% transparente. Tente valores entre 80 e 150.
+            overlay.set_alpha(128) 
+            
+            # Escolhe a cor baseada no vencedor
+            color = self.LEFT_WIN_COLOR if self.status == 1 else self.RIGHT_WIN_COLOR
+            
+            # Pinta a folha com a cor
+            overlay.fill(color)
+            
+            # "Cola" (Blit) a folha transparente por cima da quadra na posição correta
+            self.screen.blit(overlay, (self.x_pos, self.y_pos))
+            
             return
-        elif (self.status == 2):
-            pygame.draw.rect(self.screen, self.RIGHT_WIN_COLOR, [self.x_pos, self.y_pos, self.largura, self.altura])
-            return
-        else:
-            pass
 
         self.draw()
         
@@ -128,6 +153,7 @@ class Quadra:
     def _on_goal(self, goal):
         # Incrementa pontuação do time que marcou
         self.score[goal.score_for] += 1
+        self.pontuou = True
 
         if(self.score[0] >= config.WIN_SCORE):
             self.status = 1

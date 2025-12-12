@@ -4,69 +4,92 @@ import config
 class RedeNeural:
     def __init__(self, input_size=9, hidden_size=config.HIDDEN_SIZE_LAYER, output_size=2):
         """
-        input_size: Quantidade de dados de entrada (bola, inimigo, gol, etc.)
-        hidden_size: Neurônios na camada oculta (pode ajustar para mais inteligência/complexidade)
+        input_size: Quantidade de dados de entrada
+        hidden_size: Pode ser um int (ex: 12) ou uma lista (ex: [12, 8, 6]) definindo várias camadas
         output_size: 2 (ax, ay)
         """
         self.input_size = input_size
-        self.hidden_size = hidden_size
         self.output_size = output_size
-
-        # Inicialização dos pesos (W) e viéses (b) com valores aleatórios
-        # W1: Pesos da Entrada -> Oculta
-        self.W1 = np.random.randn(self.input_size, self.hidden_size)
-        self.b1 = np.zeros((1, self.hidden_size))
         
-        # W2: Pesos da Oculta -> Saída
-        self.W2 = np.random.randn(self.hidden_size, self.output_size)
-        self.b2 = np.zeros((1, self.output_size))
+        # Garante que hidden_size seja uma lista, mesmo que venha como int
+        if isinstance(hidden_size, int):
+            self.hidden_sizes = [hidden_size]
+        else:
+            self.hidden_sizes = hidden_size
+
+        # Inicializa listas para armazenar Pesos (W) e Viéses (b) de todas as camadas
+        self.weights = []
+        self.biases = []
+
+        # --- Construção Dinâmica das Camadas ---
+        
+        # 1. Camada de Entrada -> Primeira Camada Oculta
+        prev_size = self.input_size
+        
+        # Cria as camadas ocultas baseadas na lista
+        for size in self.hidden_sizes:
+            # Pesos: (tamanho_anterior, tamanho_atual)
+            W = np.random.randn(prev_size, size)
+            b = np.zeros((1, size))
+            
+            self.weights.append(W)
+            self.biases.append(b)
+            prev_size = size
+            
+        # 2. Última Camada Oculta -> Saída
+        W_out = np.random.randn(prev_size, self.output_size)
+        b_out = np.zeros((1, self.output_size))
+        
+        self.weights.append(W_out)
+        self.biases.append(b_out)
+
+        self.last_activations = []
 
     def tanh(self, x):
-        # Retorna valores entre -1 e 1 (Perfeito para direção/aceleração)
         return np.tanh(x)
 
     def feedForward(self, inputs):
-        """
-        Recebe a lista de inputs e retorna a aceleração ax, ay
-        """
-        # Garante que o input seja um array numpy no formato correto
+        self.last_activations = [] # Limpa ativações anteriores
+        
         inputs = np.array(inputs).reshape(1, -1)
+        
+        # A primeira "ativação" é o próprio input
+        self.last_activations.append(inputs[0]) 
 
-        # Camada 1 (Entrada -> Oculta)
-        self.z1 = np.dot(inputs, self.W1) + self.b1
-        self.a1 = self.tanh(self.z1) # Ativação da oculta
+        current_activation = inputs
 
-        # Camada 2 (Oculta -> Saída)
-        self.z2 = np.dot(self.a1, self.W2) + self.b2
-        output = self.tanh(self.z2) # Ativação final
+        # Passa por todas as camadas
+        for W, b in zip(self.weights, self.biases):
+            z = np.dot(current_activation, W) + b
+            current_activation = self.tanh(z)
+            self.last_activations.append(current_activation[0])
 
-        # Retorna ax, ay (valores entre -1 e 1)
-        return output[0] 
+        return current_activation[0]
 
     def mutate(self, mutation_rate=0.1, mutation_scale=0.2):
         """
-        Função vital para o Algoritmo Genético.
-        Altera levemente os pesos da rede para criar variação.
+        Aplica mutação em todas as matrizes de peso e viés da lista
         """
-        # Função auxiliar para aplicar mutação em uma matriz
         def mutate_matrix(matrix):
             mask = np.random.rand(*matrix.shape) < mutation_rate
             noise = np.random.randn(*matrix.shape) * mutation_scale
             matrix[mask] += noise[mask]
             return matrix
 
-        self.W1 = mutate_matrix(self.W1)
-        self.b1 = mutate_matrix(self.b1)
-        self.W2 = mutate_matrix(self.W2)
-        self.b2 = mutate_matrix(self.b2)
+        # Aplica mutação em cada camada armazenada nas listas
+        for i in range(len(self.weights)):
+            self.weights[i] = mutate_matrix(self.weights[i])
+            self.biases[i] = mutate_matrix(self.biases[i])
 
     def copy(self):
         """
-        Cria uma cópia exata dessa rede (para clonar o melhor da geração)
+        Cria uma cópia exata, suportando a estrutura dinâmica
         """
-        nova_rede = RedeNeural(self.input_size, self.hidden_size, self.output_size)
-        nova_rede.W1 = self.W1.copy()
-        nova_rede.b1 = self.b1.copy()
-        nova_rede.W2 = self.W2.copy()
-        nova_rede.b2 = self.b2.copy()
+        # Cria nova rede com a mesma estrutura de camadas
+        nova_rede = RedeNeural(self.input_size, self.hidden_sizes, self.output_size)
+        
+        # Copia profundamente as listas de pesos e viéses
+        nova_rede.weights = [w.copy() for w in self.weights]
+        nova_rede.biases = [b.copy() for b in self.biases]
+        
         return nova_rede

@@ -11,6 +11,8 @@ class Agent(Entity):
         altura = end[1] - begin[1]
         self.ID = ID
         self.players = players if players is not None else []
+        self.type = "AGENT"
+        self.walking = 0
         
         # Ajuste o input_size para 9 elementos conforme sua necessidade
         self.brain = RedeNeural(input_size=9) 
@@ -37,10 +39,13 @@ class Agent(Entity):
         self.vy = 0
         self.acceleration = 0.6
         self.friction = 0.85
+        # --- NOVIDADE 1: Variável para saber se é o líder ---
+        self.is_leader = False
 
         self.rect = pygame.Rect(int(self.x - self.radius), int(self.y - self.radius), int(self.radius * 2), int(self.radius * 2))
 
     def update(self):
+        self.walking = 0
         if self.target is None:
             return
 
@@ -118,7 +123,10 @@ class Agent(Entity):
         # Recebe a decisão da rede
         ax, ay = self.brain.feedForward(inputs_atuais)
 
-        # --- APLICAÇÃO DA FÍSICA (Idêntico ao original) ---
+        modulo_ax = ax if ax > 0 else -ax
+        modulo_ay = ay if ay > 0 else -ay
+        self.walking = modulo_ax + modulo_ay
+
         
         # Aplica aceleração
         self.vx += ax * self.acceleration
@@ -156,3 +164,12 @@ class Agent(Entity):
         
         self.rect.center = (int(self.x), int(self.y))
         self.draw()
+
+def draw(self):
+        # Chama o desenho normal (círculo azul)
+        super().draw()
+        
+        # Se for o líder, desenha um anel dourado e o fitness em cima
+        if self.is_leader:
+            # Anel Dourado
+            pygame.draw.circle(self.screen, (255, 215, 0), (int(self.x), int(self.y)), self.radius + 4, 3)
