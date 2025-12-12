@@ -155,7 +155,7 @@ def main():
                     if(q.pontuou):
                         agent.fitness += my_score * 30
                         agent.fitness -= enemy_score * 15
-                        q.ponutou = False
+                        q.pontuou = False
 
 
                     # Nota: Isso é acumulativo, então precisamos cuidar para não somar 
