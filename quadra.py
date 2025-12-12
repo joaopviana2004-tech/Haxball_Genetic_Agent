@@ -2,10 +2,12 @@ import pygame
 import config
 import math # Necessário para colisão
 
+import random
 from player import Player
 from bot import Bot
 from ball import Ball
 from goal import Goal
+from agent import Agent
 
 class Quadra:
     def __init__(self, screen, begin, end, players):
@@ -13,6 +15,15 @@ class Quadra:
         self.begin = begin
         self.end = end
         self.color = config.Variate_grass_color()
+
+        # Status 0: Partida Rolando
+        # Status 1: Vitoria da Esquerda
+        # Status 2: Vitoria da Direita
+        self.status = 0
+
+        self.LEFT_WIN_COLOR = config.LEFT_WIN_COLOR 
+        self.RIGHT_WIN_COLOR = config.RIGHT_WIN_COLOR
+
 
         self.x_pos = self.begin[0] 
         self.y_pos = self.begin[1]
@@ -33,12 +44,17 @@ class Quadra:
         self.ball.goal_callback = self._on_goal
         
         # Cria os players
+        ID = [random.randint(1000,5000) for i in range(2)]
+        if(ID[0] == ID[1]):
+            ID = [random.randint(1000,10000) for i in range(2)]
+
         for i in range(len(players)):
             if(players[i] == 'bot'):
-                # Bot recebe target=self.ball
-                individuo = Bot(begin, end, i % 2, screen, target=self.ball)
+                individuo = Bot(ID[i], begin, end, i % 2, screen, target=self.ball)
             elif(players[i] == 'player'):
-                individuo = Player(begin, end, i % 2, screen) # Assumindo construtor padrão
+                individuo = Player(ID[i], begin, end, i % 2, screen) 
+            else:
+                individuo = Agent(ID[i], begin, end, i % 2, screen, target=self.ball, players = self.players)
             self.players.append(individuo)
             
         # Atualiza a referência de players na bola (agora que a lista está cheia)
@@ -88,6 +104,15 @@ class Quadra:
         pygame.draw.circle(self.screen, config.LINE_COLOR, ( int(self.x_pos + self.largura/2), int(self.y_pos + self.altura/2)), int(self.altura/10), self.grossura)
 
     def update(self):
+        if(self.status == 1):
+            pygame.draw.rect(self.screen,self.LEFT_WIN_COLOR , [self.x_pos, self.y_pos, self.largura, self.altura])
+            return
+        elif (self.status == 2):
+            pygame.draw.rect(self.screen, self.RIGHT_WIN_COLOR, [self.x_pos, self.y_pos, self.largura, self.altura])
+            return
+        else:
+            pass
+
         self.draw()
         
         # 1. Resolve colisões entre jogadores ANTES de desenhar
@@ -104,6 +129,12 @@ class Quadra:
         # Incrementa pontuação do time que marcou
         self.score[goal.score_for] += 1
 
+        if(self.score[0] >= config.WIN_SCORE):
+            self.status = 1
+        elif(self.score[1] >= config.WIN_SCORE):
+            self.status = 2
+
+
         # Reseta bola no centro
         largura = self.end[0] - self.begin[0]
         altura = self.end[1] - self.begin[1]
@@ -116,7 +147,7 @@ class Quadra:
         # Reposiciona jogadores na linha central dos seus lados
         for p in self.players:
             # decide lado pelo x atual (se estiver mais à esquerda -> time 0)
-            if p.x < center_x:
+            if p.team == 0:
                 start_x = self.begin[0] + p.radius * 4
             else:
                 start_x = self.end[0] - p.radius * 4
@@ -139,7 +170,7 @@ class Quadra:
             g.draw()
 
         # Desenha placar com tamanho proporcional à altura da quadra
-        font_size = max(12, int(self.altura * 0.3))
+        font_size = max(12, int(self.altura * 0.8))
         font = pygame.font.SysFont(None, font_size)
         
         # Time 0 (esquerda)

@@ -3,10 +3,12 @@ import math
 from entity import Entity
 import config
 
+
 class Player(Entity):
-    def __init__(self, begin, end, team, screen, color=config.PLAYER_COLOR):
+    def __init__(self, ID, begin, end, team, screen, color=config.PLAYER_COLOR):
         largura = end[0] - begin[0]
         altura = end[1] - begin[1]
+        self.ID = ID
 
         # Usa a menor dimensão (largura/altura) para escalar variáveis de tamanho
         size = min(largura, altura)
@@ -14,6 +16,8 @@ class Player(Entity):
         # Define posição inicial baseada no time
         x = (begin[0] + radius*4) if team == 0 else (end[0] - radius*4) 
         y = begin[1] + altura/2
+
+        self.team = team
 
         super().__init__(x, y, begin, end, screen, radius, color=color, speed=config.PLAYER_SPEED)
 

@@ -4,9 +4,10 @@ import pygame
 import math
 
 class Bot(Entity):
-    def __init__(self, begin, end, team, screen, color=config.BOT_COLOR, target=None):
+    def __init__(self, ID, begin, end, team, screen, color=config.BOT_COLOR, target=None):
         largura = end[0] - begin[0]
         altura = end[1] - begin[1]
+        self.ID = ID
 
         # Usa a menor dimensão (largura/altura) para escalar variáveis de tamanho
         size = min(largura, altura)
