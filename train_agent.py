@@ -43,7 +43,7 @@ def main():
 
 
     # 1. Inicializa a primeira população de cérebros (Redes Neurais)
-    population_brains = [RedeNeural(input_size=9) for _ in range(POPULATION_SIZE)]
+    population_brains = [RedeNeural(input_size=config.INPUT_SIZE_LAYER) for _ in range(POPULATION_SIZE)]
     
     generation = 1
     

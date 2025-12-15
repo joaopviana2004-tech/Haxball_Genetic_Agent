@@ -2,7 +2,7 @@ import numpy as np
 import config
 
 class RedeNeural:
-    def __init__(self, input_size=9, hidden_size=config.HIDDEN_SIZE_LAYER, output_size=2):
+    def __init__(self, input_size=config.INPUT_SIZE_LAYER, hidden_size=config.HIDDEN_SIZE_LAYER, output_size=2):
         """
         input_size: Quantidade de dados de entrada
         hidden_size: Pode ser um int (ex: 12) ou uma lista (ex: [12, 8, 6]) definindo várias camadas

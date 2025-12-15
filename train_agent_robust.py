@@ -2,65 +2,59 @@ import pygame
 import pickle
 import os
 import math
-import random # Necessário para embaralhar oponentes
+import random 
 from datetime import datetime
 import numpy as np
 
-# Importa as classes do seu projeto
 from quadra import Quadra
 from redeneural import RedeNeural
 from sidebar import Sidebar 
 import config
 
 # --- CONFIGURAÇÕES DE TREINO ROBUSTO ---
-TIME_PER_MATCH = 10       # Tempo de cada partida (em segundos)
-MATCHES_PER_AGENT = 3     # Quantos oponentes diferentes cada um enfrenta
+TIME_PER_MATCH = 10      
+MATCHES_PER_AGENT = 3     
 POPULATION_SIZE = config.ROWS * config.COLUMNS * 2 
-
-# Configurações Genéticas
-MUTATION_RATE = 0.15      
-MUTATION_SCALE = 0.25     
 ELITISM_PERCENT = 0.1     
 
-# --- CLASSE AUXILIAR PARA O TREINO ---
+# --- CONFIGURAÇÕES DE FASES (Exploração vs Refinamento) ---
+# Fase 1: CAOS (Exploração) - Ninguém fez gol ainda
+MUT_RATE_EXPLORE = 0.30  
+MUT_SCALE_EXPLORE = 0.50 
+
+# Fase 2: INTERMEDIÁRIO - Começou a marcar, mas não é consistente (< 5 gols)
+MUT_RATE_2 = 0.15  
+MUT_SCALE_2 = 0.25 
+
+# Fase 3: REFINAMENTO (Exploitation) - Consistente (>= 5 gols)
+MUT_RATE_REFINE = 0.08   # Corrigido de 0.8 para 0.08 para condizer com "Ajuste fino"
+MUT_SCALE_REFINE = 0.10  
+
 class Candidate:
-    """
-    Representa um 'atleta' no campeonato genético.
-    Segura o cérebro e a pontuação acumulada de várias partidas.
-    """
     def __init__(self, brain):
         self.brain = brain
-        self.fitness = 0 # Fitness ACUMULADO das 3 partidas
+        self.fitness = 0 
 
 def save_best_model(brain, prefix):
-    if not os.path.exists("models"):
-        os.makedirs("models")
+    if not os.path.exists("models"): os.makedirs("models")
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     filename = f"models/best_{prefix}_{timestamp}.pkl"
-    with open(filename, 'wb') as f:
-        pickle.dump(brain, f)
+    with open(filename, 'wb') as f: pickle.dump(brain, f)
     print(f"✅ Modelo {prefix} salvo: {filename}")
 
-def evolve_candidates(candidate_list, target_size):
-    """
-    Evolui uma lista de Candidatos.
-    Retorna uma NOVA lista de Candidatos (fitness zerado) com cérebros evoluídos.
-    """
-    # 1. Ordena pelo fitness ACUMULADO
+def evolve_candidates(candidate_list, target_size, mutation_rate, mutation_scale):
     candidate_list.sort(key=lambda x: x.fitness, reverse=True)
-    
     new_candidates = []
     
-    # 2. Elitismo
+    # Elitismo
     num_elites = int(target_size * ELITISM_PERCENT)
     if num_elites < 1: num_elites = 1
     
     for i in range(num_elites):
         if i < len(candidate_list):
-            # O elite passa com o mesmo cérebro, mas cria um novo Candidate (fit=0)
             new_candidates.append(Candidate(candidate_list[i].brain.copy()))
             
-    # 3. Reprodução
+    # Reprodução
     remaining = target_size - len(new_candidates)
     parent_pool = candidate_list[:int(len(candidate_list)/2)]
     if not parent_pool: parent_pool = candidate_list
@@ -68,103 +62,97 @@ def evolve_candidates(candidate_list, target_size):
     for _ in range(remaining):
         parent = np.random.choice(parent_pool)
         child_brain = parent.brain.copy()
-        child_brain.mutate(mutation_rate=MUTATION_RATE, mutation_scale=MUTATION_SCALE)
+        # Usa os parâmetros dinâmicos passados
+        child_brain.mutate(mutation_rate=mutation_rate, mutation_scale=mutation_scale)
         new_candidates.append(Candidate(child_brain))
         
     return new_candidates, candidate_list[0].fitness
 
+def get_phase_params(total_goals):
+    """Retorna (Rate, Scale, NomeDaFase) baseado no histórico de gols"""
+    if total_goals == 0:
+        return MUT_RATE_EXPLORE, MUT_SCALE_EXPLORE, "EXPLORE"
+    elif total_goals < 5:
+        return MUT_RATE_2, MUT_SCALE_2, "INTERMED"
+    else:
+        return MUT_RATE_REFINE, MUT_SCALE_REFINE, "REFINE"
+
 def main():
     pygame.init()
-
     screen = pygame.display.set_mode((config.WINDOW_WIDTH, config.WINDOW_HEIGHT))
     sidebar = Sidebar(screen, config.GAME_WIDTH, config.SIDEBAR_WIDTH, config.WINDOW_HEIGHT)
-    pygame.display.set_caption(f"Neural HaxBall - Robust Training ({MATCHES_PER_AGENT} rounds)")
+    pygame.display.set_caption(f"Neural HaxBall - Robust Training")
 
     clock = pygame.time.Clock()
-
     pop_size_side = int(POPULATION_SIZE / 2)
     
-    # Inicializa Populações de Candidatos (Wrapper que segura o cérebro e o fitness global)
-    pop_left = [Candidate(RedeNeural(input_size=9)) for _ in range(pop_size_side)]
-    pop_right = [Candidate(RedeNeural(input_size=9)) for _ in range(pop_size_side)]
+    # --- CONTADORES DE GOLS PARA CONTROLE DE FASE ---
+    # Substituem os flags booleanos antigos
+    total_goals_left = 0
+    total_goals_right = 0
+
+    # Carrega ou inicia
+    # Ajustado para INPUT_SIZE 11 conforme conversas anteriores sobre normalização
+    try:
+        input_sz = config.INPUT_SIZE_LAYER
+    except:
+        input_sz = 11 # Fallback caso não esteja no config
+
+    pop_left = [Candidate(RedeNeural(input_size=input_sz)) for _ in range(pop_size_side)]
+    pop_right = [Candidate(RedeNeural(input_size=input_sz)) for _ in range(pop_size_side)]
     
     generation = 1
     if len(sidebar.fitness_history) > 0:
         generation = len(sidebar.fitness_history) + 1
-        print(f"Retomando da Geração {generation}...")
     
     running_program = True
     
-    # --- LOOP DE GERAÇÕES ---
     while running_program:
-        
-        # Reinicia o fitness acumulado de todos para a nova geração
+        # Zera fitness acumulado
         for c in pop_left: c.fitness = 0
         for c in pop_right: c.fitness = 0
         
         print(f"--- Geração {generation} ---")
-        
-        # Para garantir pareamentos aleatórios, criamos índices
         indices_left = list(range(len(pop_left)))
         indices_right = list(range(len(pop_right)))
 
-        # --- LOOP DE RODADAS (MATCHES) ---
-        # Cada agente vai jogar 'MATCHES_PER_AGENT' vezes
+        # Loop de Rounds
         for match_round in range(1, MATCHES_PER_AGENT + 1):
-            
-            # Embaralha os oponentes da direita para criar confrontos novos
             random.shuffle(indices_right)
-            
-            # Prepara as Quadras
             quadras = []
-            
-            # Mapas para saber qual Agente na tela pertence a qual Candidato (para somar pontos dps)
-            # Chave: Objeto Agent -> Valor: Objeto Candidate
             agent_to_candidate_map = {}
-            
-            # Variáveis visuais da rodada
             active_agents_left = []
             active_agents_right = []
             
             cell_width = config.GAME_WIDTH / config.COLUMNS
             cell_height = config.WINDOW_HEIGHT / config.ROWS
 
-            # Distribuição nas Quadras
-            # O Agente Esquerda[i] joga contra Direita[embaralhado[i]]
             for i in range(len(pop_left)):
-                # Calcula posição da quadra (grid)
                 row = i // config.COLUMNS
                 col = i % config.COLUMNS
-                
                 cx = col * cell_width
                 cy = row * cell_height
-                
                 q = Quadra(screen, (cx, cy), (cx + cell_width, cy + cell_height), ['agent', 'agent'])
                 quadras.append(q)
                 
-                # Configura os Agentes
                 cand_L = pop_left[indices_left[i]]
                 cand_R = pop_right[indices_right[i]]
                 
                 for agent in q.players:
                     if agent.type == 'AGENT':
-                        agent.fitness = 0 # Fitness DA PARTIDA (temporário)
-                        
-                        if agent.team == 0: # Esquerda
+                        agent.fitness = 0 
+                        if agent.team == 0:
                             agent.brain = cand_L.brain
                             agent_to_candidate_map[agent] = cand_L
                             active_agents_left.append(agent)
-                        else: # Direita
+                        else:
                             agent.brain = cand_R.brain
                             agent_to_candidate_map[agent] = cand_R
                             active_agents_right.append(agent)
 
-            # --- LOOP DO JOGO (10 segundos) ---
             start_time = pygame.time.get_ticks()
             running_match = True
             
-            print(f" > Rodada {match_round}/{MATCHES_PER_AGENT}...")
-
             while running_match:
                 clock.tick(60) 
 
@@ -173,9 +161,10 @@ def main():
                         running_program = False
                         running_match = False
                     if event.type == pygame.KEYDOWN and event.key == pygame.K_q:
-                        # Salva o melhor ATUAL da lista de candidatos
                         best_L = max(pop_left, key=lambda c: c.fitness)
-                        save_best_model(best_L.brain, "LEFT_ROBUST")
+                        save_best_model(best_L.brain, "LEFT_MANUAL")
+                        best_R = max(pop_right, key=lambda c: c.fitness)
+                        save_best_model(best_R.brain, "RIGHT_MANUAL")
                         running_program = False
                         running_match = False
 
@@ -186,42 +175,46 @@ def main():
                 screen.fill((0, 0, 0))
                 ended = True
                 
-                # Update Físico e Neural
                 for q in quadras:
                     if q.status == 0: ended = False
                     q.update()
                     
-                    # --- CÁLCULO DE FITNESS DA PARTIDA ---
                     for agent in q.players:
                         if agent.type != 'AGENT' or q.status != 0: continue
                         
                         # 1. Pressão / Ataque
-                        is_attacking = False
-                        if agent.team == 0 and (q.ball.x - q.begin[0] > q.largura/2): is_attacking = True
-                        elif agent.team == 1 and (q.ball.x - q.begin[0] < q.largura/2): is_attacking = True
-                        
-                        if is_attacking: agent.fitness += 0.02
-                        else: agent.fitness -= 0.01
+                        ball_relative_x = (q.ball.x - q.begin[0]) / q.largura
+                        reward = 0
+                        if agent.team == 0:
+                            if ball_relative_x > 0.5: reward = (0.02 + ((ball_relative_x - 0.5) * 0.1))/10
+                            else: agent.fitness -= 0.01
+                        elif agent.team == 1:
+                            if ball_relative_x < 0.5: reward = (0.02 + ((0.5 - ball_relative_x) * 0.1))/10
+                            else: agent.fitness -= 0.01
+                        agent.fitness += reward
 
-                        # 2. Gol (Resetado pela quadra, mas capturado aqui)
+                        # 2. Gol e DETECÇÃO DE FASE
                         if q.pontuou:
+                            # Contagem de Gols para evolução de fase
+                            if agent.team == 0:
+                                total_goals_left += 1
+                                print(f"> GOL ESQUERDA! Total: {total_goals_left}")
+                            elif agent.team == 1:
+                                total_goals_right += 1
+                                print(f"> GOL DIREITA! Total: {total_goals_right}")
+
                             my_score = q.score[agent.team]
                             enemy_score = q.score[1 - agent.team]
-                            agent.fitness += my_score * 30
-                            agent.fitness -= enemy_score * 15
+                            agent.fitness += my_score * 50
+                            agent.fitness -= enemy_score * 20
                             
-                            # Hack para resetar flag apenas uma vez por frame
                             if q.players[-1] == agent: q.pontuou = False 
 
-                        # 3. Penalidades
-                        agent.fitness -= 0.001 # Tempo
-                        if agent.walking == 0: agent.fitness -= 0.1 # Preguiça
+                        agent.fitness -= 0.001 
+                        if agent.walking == 0: agent.fitness -= 0.1 
 
                 if ended: running_match = False
 
-                # --- VISUALIZAÇÃO ---
-                # Acha o melhor agente NA TELA (só para desenhar o quadrado)
-                # Nota: Isso é visual, o fitness real está sendo somado depois
                 if active_agents_left and active_agents_right:
                     best_vis_L = max(active_agents_left, key=lambda a: a.fitness)
                     best_vis_R = max(active_agents_right, key=lambda a: a.fitness)
@@ -229,54 +222,54 @@ def main():
                     pygame.draw.rect(screen, config.LEFT_WIN_COLOR, [best_vis_L.begin[0], best_vis_L.begin[1], best_vis_L.end[0]-best_vis_L.begin[0], best_vis_L.end[1]-best_vis_L.begin[1]], 4)
                     pygame.draw.rect(screen, config.RIGHT_WIN_COLOR, [best_vis_R.begin[0], best_vis_R.begin[1], best_vis_R.end[0]-best_vis_R.begin[0], best_vis_R.end[1]-best_vis_R.begin[1]], 4)
                     
-                    # Sidebar mostra "Round X" no tempo
-                    # Para mostrar o fitness global, pegamos do candidato, não do agente
+                    # Sidebar
                     best_cand_global = max(pop_left + pop_right, key=lambda c: c.fitness)
                     
-                    # Texto personalizado para mostrar o Round na sidebar
-                    sidebar_time_text = f"Round {match_round}/{MATCHES_PER_AGENT} | {int(TIME_PER_MATCH - elapsed)}s"
-                    
-                    # Gambiarra visual: Criamos um "Fake Agent" só pra passar o fitness global acumulado pra sidebar
-                    class FakeAgent:
-                        def __init__(self, f): self.fitness = f
-                        
-                    sidebar.draw(generation, best_cand_global, TIME_PER_MATCH - elapsed)
-                    # Sobrescreve o texto de tempo da sidebar (opcional, requer alteração na sidebar, 
-                    # mas o padrão vai mostrar o tempo restante do round, o que já é bom)
+                    # Pega status baseado nos gols
+                    _, _, status_L = get_phase_params(total_goals_left)
+                    _, _, status_R = get_phase_params(total_goals_right)
+                    status_txt = f"L: {status_L}({total_goals_left}) | R: {status_R}({total_goals_right})"
+
+                    sidebar.draw(generation, match_round, MATCHES_PER_AGENT, best_cand_global, TIME_PER_MATCH - elapsed, status_txt)
 
                 pygame.display.flip()
             
             if not running_program: break
             
-            # --- FIM DA RODADA: CONSOLIDAÇÃO DE PONTOS ---
-            # Soma o fitness da partida ao fitness TOTAL do Candidato
+            # Soma Fitness do Round
             for q in quadras:
                 for agent in q.players:
                     if agent.type == 'AGENT':
-                        # Pontos finais da partida (Vitória/Placar)
                         my_score = q.score[agent.team]
                         enemy_score = q.score[1 - agent.team]
                         agent.fitness += my_score * 100
                         agent.fitness -= enemy_score * 50
-                        
-                        # Recupera o Candidato dono desse agente e soma tudo
                         candidate = agent_to_candidate_map[agent]
                         candidate.fitness += agent.fitness
 
         if not running_program: break
 
-        # --- FIM DA GERAÇÃO ---
+        # --- AUTO SAVE ---
+        if generation % 20 == 0:
+            best_L = max(pop_left, key=lambda c: c.fitness)
+            save_best_model(best_L.brain, f"AUTO_L_GEN{generation}")
+            best_R = max(pop_right, key=lambda c: c.fitness)
+            save_best_model(best_R.brain, f"AUTO_R_GEN{generation}")
+            
+        # --- EVOLUÇÃO COM PARÂMETROS ADAPTATIVOS (3 FASES) ---
         
-        # Evolução baseada no Fitness ACUMULADO das 3 partidas
-        pop_left, fit_L = evolve_candidates(pop_left, pop_size_side)
-        pop_right, fit_R = evolve_candidates(pop_right, pop_size_side)
+        # Define parametros para Esquerda
+        rate_L, scale_L, _ = get_phase_params(total_goals_left)
+        pop_left, fit_L = evolve_candidates(pop_left, pop_size_side, rate_L, scale_L)
+        
+        # Define parametros para Direita
+        rate_R, scale_R, _ = get_phase_params(total_goals_right)
+        pop_right, fit_R = evolve_candidates(pop_right, pop_size_side, rate_R, scale_R)
         
         best_global = max(fit_L, fit_R)
-        print(f"Gen {generation} Finalizada | Best Score (Avg): {best_global/MATCHES_PER_AGENT:.2f}")
+        print(f"Gen {generation} Finalizada | Best (Avg): {best_global/MATCHES_PER_AGENT:.2f}")
         
-        # Salva histórico (usamos a média por partida para o gráfico não explodir em valores altos)
         sidebar.update_history(best_global / MATCHES_PER_AGENT)
-        
         generation += 1
 
     pygame.quit()
