@@ -72,7 +72,7 @@ def get_phase_params(total_goals):
     """Retorna (Rate, Scale, NomeDaFase) baseado no histórico de gols"""
     if total_goals == 0:
         return MUT_RATE_EXPLORE, MUT_SCALE_EXPLORE, "EXPLORE"
-    elif total_goals < 5:
+    elif total_goals < 6:
         return MUT_RATE_2, MUT_SCALE_2, "INTERMED"
     else:
         return MUT_RATE_REFINE, MUT_SCALE_REFINE, "REFINE"
@@ -271,6 +271,8 @@ def main():
         
         sidebar.update_history(best_global / MATCHES_PER_AGENT)
         generation += 1
+        total_goals_left = 0
+        total_goals_right = 0
 
     pygame.quit()
 

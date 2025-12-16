@@ -72,6 +72,10 @@ class Agent(Entity):
         # A) BOLA
         dx_bola = self.target.x - self.x
         dy_bola = self.target.y - self.y
+
+        ball_x = (self.target.x - self.begin[0]) / width  
+        ball_y = (self.target.y - self.begin[1]) / height  
+
         dist_bola = math.hypot(dx_bola, dy_bola)
         ang_bola = math.atan2(dy_bola, dx_bola)
         dir_bola = math.atan2(self.target.vy, self.target.vx)
@@ -130,6 +134,8 @@ class Agent(Entity):
         inputs_atuais = [
             my_x_norm,         
             my_y_norm,
+            ball_x,
+            ball_y,
             opponent_x,   
             opponent_y,
             gol_x,   

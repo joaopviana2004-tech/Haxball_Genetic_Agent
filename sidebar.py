@@ -1,6 +1,4 @@
 import pygame
-import json
-import os
 import matplotlib
 import matplotlib.pyplot as plt
 import io
@@ -23,28 +21,18 @@ class Sidebar:
         self.margin_x = 20
         self.net_y_start = 420 
 
-        self.history_file = "training_history.json"
-        self.fitness_history = self.load_history()
+        # --- MODIFICAÇÃO: Histórico apenas em memória (RAM) ---
+        # Não carrega mais de arquivo. Começa limpo a cada execução.
+        self.fitness_history = [] 
+        
         self.cached_graph_surface = None
         self.update_graph_surface()
 
-    def load_history(self):
-        if os.path.exists(self.history_file):
-            try:
-                with open(self.history_file, 'r') as f:
-                    data = json.load(f)
-                    return [float(x) for x in data]
-            except:
-                return []
-        return []
-
     def update_history(self, best_fitness):
+        # Apenas adiciona na lista local
         self.fitness_history.append(float(best_fitness))
-        try:
-            with open(self.history_file, 'w') as f:
-                json.dump(self.fitness_history, f)
-        except Exception as e:
-            print(f"Erro ao salvar: {e}")
+        
+        # Regenera o gráfico visual
         self.update_graph_surface()
 
     def update_graph_surface(self):
@@ -77,7 +65,6 @@ class Sidebar:
         plt.close(fig)
         buf.close()
 
-    # --- ATUALIZADO: Aceita Round Info ---
     def draw(self, generation, current_round, total_rounds, best_agent, elapsed_time, phase_status):
         # Fundo
         pygame.draw.rect(self.screen, (30, 30, 30), (self.x_start, 0, self.width, self.height))
@@ -94,7 +81,7 @@ class Sidebar:
         self._draw_centered_text(f"Tempo: {int(elapsed_time)}s", y_cursor)
 
         y_cursor += 25
-        # Mostra o status da fase (Exploração ou Refinamento)
+        # Mostra o status da fase
         self._draw_centered_text(phase_status, y_cursor, size=12, color=(150, 255, 150))
 
         y_cursor += 25
